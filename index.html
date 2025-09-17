@@ -37,6 +37,9 @@
     >
       Submit
     </button>
+
+    <!-- Form message area -->
+    <p id="formMessage" class="mt-4 text-center text-base"></p>
   </div>
 
   <script>
@@ -64,6 +67,11 @@
     usernameInput.addEventListener("input", () => {
       clearTimeout(debounceTimer);
       const value = usernameInput.value.trim();
+
+      // Clear form message when user starts typing
+      const formMessage = document.getElementById("formMessage");
+      formMessage.textContent = "";
+      formMessage.className = "mt-4 text-center text-base";
 
       if (!value) {
         usernameMessage.textContent = "";
@@ -102,6 +110,9 @@
       if (!usernameAvailable) return;
 
       const value = usernameInput.value.trim();
+      const formMessage = document.getElementById("formMessage");
+      formMessage.textContent = "";
+      formMessage.className = "mt-4 text-center text-base";
       try {
         const res = await fetch(`${API_BASE}/users/`, {
           method: "POST",
@@ -111,16 +122,19 @@
         const data = await res.json();
 
         if (res.ok) {
-          alert("🎉 User created successfully!");
+          formMessage.textContent = "🎉 User created successfully!";
+          formMessage.className += " text-green-600";
           usernameInput.value = "";
           usernameMessage.textContent = "";
           submitBtn.disabled = true;
           loadUserCount();
         } else {
-          alert(`❌ Error: ${data.error}`);
+          formMessage.textContent = `❌ Error: ${data.error}`;
+          formMessage.className += " text-red-600";
         }
       } catch (err) {
-        alert("⚠️ Network error while creating user.");
+        formMessage.textContent = "⚠️ Network error while creating user.";
+        formMessage.className += " text-yellow-600";
       }
     });
 
