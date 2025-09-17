@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Username Registration</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-6">
+
+  <!-- Header -->
+  <div class="w-full flex justify-start mb-6">
+    <span id="totalUsers" class="text-lg font-semibold text-gray-700">Users: ...</span>
+  </div>
+
+  <!-- Card -->
+  <div class="bg-white shadow-lg rounded-2xl p-8 w-full max-w-md">
+    <h1 class="text-2xl font-bold text-gray-800 mb-6">Create Username</h1>
+
+    <!-- Username input -->
+    <div class="mb-4">
+      <label for="username" class="block text-sm font-medium text-gray-600 mb-2">Username</label>
+      <input 
+        type="text" 
+        id="username" 
+        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+        placeholder="Enter a username" 
+      />
+      <p id="usernameMessage" class="mt-2 text-sm"></p>
+    </div>
+
+    <!-- Submit button -->
+    <button 
+      id="submitBtn" 
+      disabled 
+      class="w-full bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+    >
+      Submit
+    </button>
+  </div>
+
+  <script>
+    const API_BASE = "http://localhost:3000"; // adjust if backend runs elsewhere
+    const usernameInput = document.getElementById("username");
+    const usernameMessage = document.getElementById("usernameMessage");
+    const submitBtn = document.getElementById("submitBtn");
+    const totalUsers = document.getElementById("totalUsers");
+
+    let debounceTimer;
+    let usernameAvailable = false;
+
+    // Fetch total users
+    async function loadUserCount() {
+      try {
+        const res = await fetch(`${API_BASE}/users/count`);
+        const data = await res.json();
+        totalUsers.textContent = `Users: ${data.count}`;
+      } catch (err) {
+        totalUsers.textContent = "Users: error";
+      }
+    }
+
+    // Debounced check username
+    usernameInput.addEventListener("input", () => {
+      clearTimeout(debounceTimer);
+      const value = usernameInput.value.trim();
+
+      if (!value) {
+        usernameMessage.textContent = "";
+        submitBtn.disabled = true;
+        return;
+      }
+
+      debounceTimer = setTimeout(async () => {
+        try {
+          const res = await fetch(`${API_BASE}/users/check/${encodeURIComponent(value)}`);
+          console.log('1111');
+          const data = await res.json();
+          console.log('2222', data);
+          if (data.exists) {
+            usernameMessage.textContent = "❌ Username is already taken.";
+            usernameMessage.className = "mt-2 text-sm text-red-600";
+            submitBtn.disabled = true;
+            usernameAvailable = false;
+          } else {
+            usernameMessage.textContent = "✅ Username is available.";
+            usernameMessage.className = "mt-2 text-sm text-green-600";
+            submitBtn.disabled = false;
+            usernameAvailable = true;
+          }
+        } catch (err) {
+          usernameMessage.textContent = "⚠️ Error checking username.";
+          usernameMessage.className = "mt-2 text-sm text-yellow-600";
+          submitBtn.disabled = true;
+          usernameAvailable = false;
+        }
+      }, 500); // debounce 500ms
+    });
+
+    // Submit handler
+    submitBtn.addEventListener("click", async () => {
+      if (!usernameAvailable) return;
+
+      const value = usernameInput.value.trim();
+      try {
+        const res = await fetch(`${API_BASE}/users/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: value }),
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          alert("🎉 User created successfully!");
+          usernameInput.value = "";
+          usernameMessage.textContent = "";
+          submitBtn.disabled = true;
+          loadUserCount();
+        } else {
+          alert(`❌ Error: ${data.error}`);
+        }
+      } catch (err) {
+        alert("⚠️ Network error while creating user.");
+      }
+    });
+
+    // Initial load
+    loadUserCount();
+  </script>
+</body>
+</html>
